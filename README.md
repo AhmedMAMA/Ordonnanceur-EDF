@@ -63,8 +63,8 @@ int main(){
 To compile and run the code, use the following commands:
 
 ```bash
-gcc -o edf_scheduler your_code_file.c -lm
-./edf_scheduler
+gcc edf.c
+./a.out
 ```
 
 Make sure to link the math library (`-lm`) during compilation as functions like `ceil()` are used in the code.
