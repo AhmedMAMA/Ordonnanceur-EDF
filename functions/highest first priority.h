@@ -1,18 +1,34 @@
 #ifndef HPF
 #define HPF
-#include "./struct.h"
-int RechercheTachePrioritaire(Tache*, int, int);
-void deadlineRelative(Tache*, int, int, Tache*);
-bool FiniHighestFirstPriority(Tache*, int);
+// #include "struct.h"
+typedef struct {
+    int num;             // Numéro de la tâche
+    int time;            // Temps d'exécution initial
+    int deadline;        // Deadline de la tâche
+    int period;          // Période de la tâche
+    int priority;        // Priorité de la tâche
+} TacheHPF;
+
+typedef struct {
+    int tache_num;       // Numéro de la tâche
+    int new_time;        // Nouveau temps d'exécution
+    int next_tache;      // Prochaine tâche à exécuter
+    int next_taches;     // Nombre de tâches suivantes
+    int* deadline_relative; // Tableau de deadlines relatives
+} DeadLineRelativeHPF;
+
+int RechercheTachePrioritaire(TacheHPF*, int, int);
+void deadlineRelative(TacheHPF*, int, int, TacheHPF*);
+bool FiniHighestFirstPriority(TacheHPF*, int);
 bool etudeFaisabilite(int*,int);
-int* highestFirstPriority(Tache*, Tache* , int);
+int* highestFirstPriority(TacheHPF*, TacheHPF* , int);
 #endif
 /*
     * SI la deadline & la période ne sont pas égales.*
 */
 
 // Recherche la tâche dont la priorité est haute et qui n'est pas en cours exétuer au travers de la tâchAcctuelle
-int RechercheTachePrioritaire(Tache* taches, int taille,int tacheActuelle) {
+int RechercheTachePrioritaire(TacheHPF* taches, int taille,int tacheActuelle) {
     if (taille == 0) {
         return -1; // Si la taille est 0, pas de tâche, retourne une valeur invalide
     }
@@ -28,8 +44,8 @@ int RechercheTachePrioritaire(Tache* taches, int taille,int tacheActuelle) {
 }
 
 
-void deadlineRelative(Tache* taches,int tachePrioritaire, int taille,Tache* tache_orgine){
-    DeadLineRelative deadline_par_rapport_a_tous_tache;
+void deadlineRelative(TacheHPF* taches,int tachePrioritaire, int taille,TacheHPF* tache_orgine){
+    DeadLineRelativeHPF deadline_par_rapport_a_tous_tache;
     deadline_par_rapport_a_tous_tache.deadline_relative = (int*) malloc(taille * sizeof(int));
     deadline_par_rapport_a_tous_tache.tache_num = tachePrioritaire;
 
@@ -77,7 +93,7 @@ void deadlineRelative(Tache* taches,int tachePrioritaire, int taille,Tache* tach
     else taches[tachePrioritaire-1].time =0 ;
 }
 
-bool FiniHighestFirstPriority(Tache* taches, int nbreTache){
+bool FiniHighestFirstPriority(TacheHPF* taches, int nbreTache){
     int nbre_tache_finis = 0;
     for(int i = 0; i < nbreTache; i++){
         if(taches[i].deadline == 0){
@@ -87,16 +103,16 @@ bool FiniHighestFirstPriority(Tache* taches, int nbreTache){
     return true ? nbre_tache_finis == nbreTache : false;
 }
 
-int* highestFirstPriority(Tache* taches,Tache* tache_orgine, int taille){
+int* highestFirstPriority(TacheHPF* taches,TacheHPF* tache_orgine, int taille){
     int tacheActuelle = -1;
-    printf("Début d'excution...........\n");
+    printf("\033[34m""Début d'excution...........\n""\033[0m");
     while(!FiniHighestFirstPriority(taches,taille)){
         tacheActuelle = RechercheTachePrioritaire(taches, taille,tacheActuelle);
         deadlineRelative(taches,tacheActuelle,taille,tache_orgine);
-        printf("\nTâche en cours d'exécution: %d.\n\nSortie de l'exécution : \n",tacheActuelle);
+        printf("\033[32m""\nTâche en cours d'exécution: %d.\n\nSortie de l'exécution : \n""\033[0m",tacheActuelle);
         for (int i = 0; i < taille; i++)
         {
-            printf("Tâche: %d - Durée : %d - Echeance :%d - Période : %d - Priorité : %d\n",taches[i].num,taches[i].time,taches[i].deadline,taches[i].period, taches[i].priority);
+            printf("\033[34m""Tâche: %d - Durée : %d - Echeance :%d - Période : %d - Priorité : %d\n""\033[0m",taches[i].num,taches[i].time,taches[i].deadline,taches[i].period, taches[i].priority);
         }
     }
     int* lastTime = (int*) malloc(taille * sizeof(int));
@@ -114,3 +130,22 @@ bool etudeFaisabilite(int* time, int taille){ // Retour True si pas_zero vaut 0;
     }
     return pas_zero == 0;
 };
+//Lecture pour HPF
+
+//
+int MAIN_HPF(){
+    TacheHPF tab_origine[] = {
+        {1, 2, 7, 7, 20},
+        {2, 3, 11, 11, 15},
+        {3, 5, 13, 13, 10}
+    };
+    TacheHPF tab[3];
+    for (int i = 0; i < 3; i++) {
+        tab[i] = tab_origine[i];  // Copie de chaque élément
+    }
+    // if()
+    int res = etudeFaisabilite(highestFirstPriority(tab,tab_origine, 3),3);
+    printf("\033[32m""Automate Faisable car pas de dépasssement de deadline\n""\033[0m") ? res == 0 : printf("\033[31m""Automate non Faisable car dépasssement de deadline\n""\033[0m");
+
+    return 0;
+}

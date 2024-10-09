@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 #define INT_MAX 99999
 #define INT_MIN -9999
 int tmp_exc = 0; // Compteur
@@ -45,8 +46,8 @@ int BigDeadline(Tache task[],int n){
             busy_period += (int) ceil((double)t / (double)task[i].period) * task[i].execution_time;
         }
         t = busy_period;
-        // printf("Pour t = %d, busy_period = %d\n", t, busy_period);
     }
+    printf("\033[1;34m" "Notre Busy_Period vaut %d\n""\033[0m", busy_period);
     return busy_period;
 }
 
@@ -81,9 +82,9 @@ int TachePrioritaire(Tache task[], int n) {
     }
 
     if (tache != -1) {
-        printf("Tâche à exécuter : %d  |=|  A t =%d \n\n", task[tache].id,tmp_exc); // Afficher l'identifiant de la tâche
+        printf("\033[1;34m""Tâche à exécuter : %d  |=|  A t =%d \n""\033[0m", task[tache].id,tmp_exc); // Afficher l'identifiant de la tâche
     } else {
-        printf("Aucune tâche prête à exécuter.\n");
+        printf("\033[1;34m""Aucune tâche prête à exécuter.\n""\033[0m");
     }
     return tache;  // Retourner l'index de la tâche avec la plus petite deadline ou -1 si aucune
 }
@@ -129,7 +130,7 @@ void PetitePeriod(Tache task[], int n, int* period_absolu, int tache_en_attente)
     int next_cout = task[tache_en_attente].remaining_time;
     task[tache_en_attente].remaining_time += tmp;
     // task[tache_en_attente].execution_time = task[tache_en_attente].execution_time - task[tache_en_attente].remaining_time;
-    printf("interruption de la tâche %d pour %d.\n",tache_en_attente + 1,task[tache_en_attente].execution_time );
+    printf("\033[1;31m" "\n\nInterruption de la tâche %d pour %ds.\n""\033[0m",tache_en_attente + 1,task[tache_en_attente].execution_time );
     execution(task,n,tache_en_attente);
     task[tache_en_attente].remaining_time = next_cout - task[tache_en_attente].remaining_time;
 }
@@ -139,13 +140,13 @@ void execution(Tache task[], int n,int tache_prioritaire){
     DeadLineRelative deadline;
     deadline.deadline_absolue = (int*) malloc(n * sizeof(int));
     deadline.period_absolu = (int*) malloc(n * sizeof(int));
-    printf("Calculs des dealines relatives :\n\n");
+    // printf("\033[1;34m""\n\nCalculs des dealines relatives :\n\n""\033[0m");
     // Calcul des deadline relative de la tâche à exécuter par rapport au autres tâches y compris elle
     for (int i = 0; i < n; i++)
     {
         deadline.deadline_absolue[i] = task[i].deadline - tmp_exc - task[tache_prioritaire].remaining_time;
         deadline.period_absolu[i] = task[i].period - tmp_exc - task[tache_prioritaire].remaining_time;
-        printf("Tache %d : Deadline_absolue = %d Period_absolu = %d\n",i + 1,deadline.deadline_absolue[i],deadline.period_absolu[i]);
+        // printf("Tache %d : Deadline_absolue = %d Period_absolu = %d\n",i + 1,deadline.deadline_absolue[i],deadline.period_absolu[i]);
     }
 
     // Vérifie que l'instant de la tâche en cours ne dépasse pas sa propre deadline
@@ -160,7 +161,7 @@ void execution(Tache task[], int n,int tache_prioritaire){
             task[tache_suivant].period += tmp_exc;
         }
         else{
-            printf("\n\nLa tâche %d est exécutée complétement pour %ds à t= %ds\n\n", tache_prioritaire +1,task[tache_prioritaire].remaining_time ,tmp_exc);
+            printf("\033[1;32m""\nLa tâche %d est exécutée complétement pour %ds à t= %ds\n\n""\033[0m", tache_prioritaire +1,task[tache_prioritaire].remaining_time ,tmp_exc);
             tmp_exc += task[tache_prioritaire].remaining_time;
             task[tache_prioritaire].remaining_time = 0;
             task[tache_prioritaire].nbre_exc++; 
@@ -180,40 +181,99 @@ void ValidationSyst(Tache tache[],int n){
     if(valide == n) printf("Système faisable"); else printf("Système non faisable");
 }
 
-
-    FILE* fichier = fopen(nom_fichier, "r");
+// Lecteur fichier
+int lire_fichier_taches(const char* chemin, Tache** tableau, int* taille) {
+    FILE* fichier = fopen(chemin, "r");
     if (fichier == NULL) {
-        printf("Erreur : impossible d'ouvrir le fichier %s\n", nom_fichier);
-        return NULL;
+        printf("\033[1;31m""Erreur : impossible d'ouvrir le fichier %s\n""\033[0m", chemin);
+        return -1;
     }
 
-    // Compter le nombre d'entiers dans le fichier
-    int nombre, compteur = 0;
-    while (fscanf(fichier, "%d", &nombre) == 1) {
+    // Compter le nombre de tâches dans le fichier
+    int compteur = 0;
+    Tache tache_temp;
+    while (fscanf(fichier, "%d %d %d %d %d ", 
+                  &tache_temp.id, &tache_temp.execution_time, &tache_temp.deadline,
+                  &tache_temp.period, &tache_temp.priority) == 5) {
         compteur++;
     }
 
-    // Allouer la mémoire pour stocker les entiers
-    int* tableau = (int*)malloc(compteur * sizeof(int));
-    if (tableau == NULL) {
-        printf("Erreur : impossible d'allouer la mémoire\n");
+    // Allouer la mémoire pour le tableau de tâches
+    *tableau = (Tache*)malloc(compteur * sizeof(Tache));
+    if (*tableau == NULL) {
+        printf("\033[1;31m""Erreur : impossible d'allouer la mémoire\n""\033[0m");
         fclose(fichier);
-        return NULL;
+        return -1;
     }
 
-    // Remettre le curseur du fichier au début
+    // Revenir au début du fichier pour lire les tâches
     rewind(fichier);
 
-    // Lire les entiers et les stocker dans le tableau
+    // Lire les tâches et les stocker dans le tableau
     int index = 0;
-    while (fscanf(fichier, "%d", &nombre) == 1) {
-        tableau[index++] = nombre;
+    while (fscanf(fichier, "%d %d %d %d %d", 
+                  &(*tableau)[index].id, &(*tableau)[index].execution_time, 
+                  &(*tableau)[index].deadline, &(*tableau)[index].period, 
+                  &(*tableau)[index].priority) == 5) {
+        index++;
     }
 
-    // Fermer le fichier
+    // Fermer le fichier et renvoyer le nombre de tâches lues
     fclose(fichier);
-
-    // Renvoyer la taille et le tableau
     *taille = compteur;
-    return tableau;
+    return 0;
+}
+
+
+
+// Primary function that equal to the main
+int MAIN_EDF(){
+    Tache* tache = NULL; // Initialiser tache à NULL
+    int taille = 0;      // Initialiser taille à 0
+    char* chemin = malloc(150 * sizeof(char)); // Allocation de mémoire pour le chemin
+    char* nom_fichier = malloc(100 * sizeof(char)); // Allocation de mémoire pour le nom de fichier
+
+    // Vérifier si l'allocation a réussi
+    if (chemin == NULL || nom_fichier == NULL) {
+        printf("Erreur d'allocation mémoire.\n");
+        return 1; // Sortir avec une erreur
+    }
+
+    // Message d'avertissement avec une partie colorée
+    printf("\033[1;31m" "Veuillez à ce que le fichier à entrer respecte la structure ligne : "
+           "N°tache Coût Deadline Période Priorité & est(sont) stocké(s) dans le dossier data"
+           "\033[0m" "\n");
+
+    // Demander à l'utilisateur de saisir le nom du fichier
+    printf("Entrez le nom du fichier : ");
+    scanf("%99s", nom_fichier);  // Limiter la saisie à 99 caractères pour éviter le dépassement
+
+    // Construire le chemin complet du fichier en concaténant
+    strcpy(chemin, "../data/");  // Copier le chemin de base
+    strcat(chemin, nom_fichier);    // Ajouter le nom du fichier
+
+    printf("chemin : %s\n", chemin);
+
+    // Lire les tâches à partir du fichier
+    if (lire_fichier_taches(chemin, &tache, &taille) == 0) {
+        printf("\033[1;32m" "Lancement de l'algorithme EDF.....\n" "\033[0m");
+        RemainingTime(tache, taille);
+        int bigdeadline = BigDeadline(tache, taille);
+        for (int i = 0; i < bigdeadline; i++) {
+            execution(tache, taille, TachePrioritaire(tache, taille));
+            display_tasks(tache, taille);
+        }
+        ValidationSyst(tache, taille);
+        RemainingTime(tache, taille);
+    } else {
+        printf("\033[1;31m""Erreur lors de la lecture des tâches.\n""\033[0m");
+    }
+
+    // Libérer la mémoire
+    free(chemin);
+    free(nom_fichier);
+    free(tache); // Assurez-vous que tache a été alloué dynamiquement dans lire_fichier_taches
+
+    return 0;
+
 }
